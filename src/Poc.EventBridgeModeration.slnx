@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/functions/">
+    <Project Path="functions/MessageModerationLambda/MessageModerationLambda.csproj" />
+    <Project Path="functions/MessageSubmissionLambda/MessageSubmissionLambda.csproj" />
+  </Folder>
+</Solution>
