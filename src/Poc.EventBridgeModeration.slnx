@@ -3,4 +3,7 @@
     <Project Path="functions/MessageModerationLambda/MessageModerationLambda.csproj" />
     <Project Path="functions/MessageSubmissionLambda/MessageSubmissionLambda.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MessageSubmissionLambda.Tests/MessageSubmissionLambda.Tests.csproj" />
+  </Folder>
 </Solution>
