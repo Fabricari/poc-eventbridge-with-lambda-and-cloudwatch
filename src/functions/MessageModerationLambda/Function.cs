@@ -24,3 +24,9 @@ public class Function
             $"DEMO | MESSAGE MODERATION | Processing result: status={result.Status}; matched-terms={(result.MatchedTerms.Length > 0 ? string.Join(", ", result.MatchedTerms) : "none")}; original-text=\"{result.OriginalText}\"");
     }
 }
+
+// Minimal EventBridge detail model used for handler deserialization.
+public class ModerationEvent
+{
+    public required string Text { get; init; }
+}
