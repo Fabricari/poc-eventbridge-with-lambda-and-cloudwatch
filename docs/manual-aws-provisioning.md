@@ -17,9 +17,23 @@ All steps assume you are signed in to the AWS Console and working in a single re
 
 ---
 
-## 1. Create IAM Execution Roles
+## 1. Create the Custom Event Bus
 
-Both Lambda functions need an IAM execution role. You can create two separate roles or reuse one depending on your needs. Separate roles are shown below because the publisher requires an additional EventBridge permission.
+1. Open the **Amazon EventBridge Console** > **Event buses** > **Create event bus**.
+
+| Setting | Value |
+|---|---|
+| Name | `message-moderation-bus` |
+| Encryption | **Use AWS owned key** (default) |
+
+2. Leave all optional settings (archive, schema discovery, resource policy) at their defaults.
+3. Choose **Create**.
+
+---
+
+## 2. Create IAM Execution Roles
+
+Each Lambda function assumes an IAM execution role that controls which AWS services the function itself can call. The publisher Lambda needs permission to write events to EventBridge, while the subscriber Lambda only needs the default permission to write logs to CloudWatch. Separate roles are shown below to keep these permissions scoped to each function.
 
 ### Publisher Role (MessageSubmissionLambda)
 
@@ -27,7 +41,7 @@ Both Lambda functions need an IAM execution role. You can create two separate ro
 2. Trusted entity type: **AWS service**.
 3. Use case: **Lambda**.
 4. Attach the managed policy **AWSLambdaBasicExecutionRole**.
-5. Add an inline policy granting `events:PutEvents` on the custom event bus ARN (you can add the ARN after creating the bus in step 3, or use `*` temporarily):
+5. Add an inline policy granting `events:PutEvents` on the custom event bus ARN created in step 1:
 
 ```json
 {
@@ -52,7 +66,7 @@ Both Lambda functions need an IAM execution role. You can create two separate ro
 
 ---
 
-## 2. Create the Lambda Functions
+## 3. Create the Lambda Functions
 
 ### MessageSubmissionLambda (Publisher with Function URL)
 
@@ -115,20 +129,6 @@ MessageModerationLambda::MessageModerationLambda.MessageModerationFunction::Func
 
 ---
 
-## 3. Create the Custom Event Bus
-
-1. Open the **Amazon EventBridge Console** > **Event buses** > **Create event bus**.
-
-| Setting | Value |
-|---|---|
-| Name | `message-moderation-bus` |
-| Encryption | **Use AWS owned key** (default) |
-
-2. Leave all optional settings (archive, schema discovery, resource policy) at their defaults.
-3. Choose **Create**.
-
----
-
 ## 4. Create the EventBridge Rule
 
 The rule matches events published by the submission Lambda and routes them to the moderation Lambda.
@@ -165,7 +165,7 @@ These values must match the `EVENT_SOURCE` and `EVENT_DETAIL_TYPE` environment v
 
 ## 5. Verify the Lambda Resource-Based Policy
 
-When you select a Lambda function as an EventBridge rule target through the console, AWS automatically adds a resource-based policy granting EventBridge permission to invoke the function. You can confirm this:
+The execution roles in step 2 control what each Lambda can call out to. This step covers the reverse direction — the resource-based policy on the moderation Lambda controls what is allowed to invoke it. When you selected the Lambda as a rule target in step 4, the console should have automatically added a policy granting EventBridge permission to invoke the function. Confirm this:
 
 1. Open **MessageModerationLambda** in the Lambda Console.
 2. Go to **Configuration** > **Permissions**.
