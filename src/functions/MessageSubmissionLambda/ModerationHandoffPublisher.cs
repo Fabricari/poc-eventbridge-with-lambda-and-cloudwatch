@@ -18,9 +18,9 @@ public class ModerationHandoffPublisher
         _eventDetailType = Environment.GetEnvironmentVariable("EVENT_DETAIL_TYPE") ?? "";
     }
 
-    public async Task<bool> PublishAsync(SubmittedMessage message)
+    public async Task<bool> PublishAsync(string text)
     {
-        var detail = JsonSerializer.Serialize(message);
+        var detail = JsonSerializer.Serialize(new { Text = text });
 
         var request = new PutEventsRequest
         {

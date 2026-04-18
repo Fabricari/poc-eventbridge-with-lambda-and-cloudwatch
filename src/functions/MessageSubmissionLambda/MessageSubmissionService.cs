@@ -20,9 +20,7 @@ public class MessageSubmissionService
 
         var normalizedText = text.Trim();
 
-        var message = new SubmittedMessage { Text = normalizedText };
-
-        var published = await _publisher.PublishAsync(message);
+        var published = await _publisher.PublishAsync(normalizedText);
 
         return published ? SubmissionStatus.Accepted : SubmissionStatus.PublishFailed;
     }
