@@ -6,11 +6,11 @@ using Amazon.Lambda.Core;
 
 namespace MessageModerationLambda;
 
-public class Function
+public class MessageModerationFunction
 {
-    private readonly ModerationService _service = new();
+    private readonly MessageModerationService _service = new();
 
-    // Configure the Lambda handler as <Assembly>::MessageModerationLambda.Function::FunctionHandler; signature must match the EventBridge envelope shape.
+    // Configure the Lambda handler as <Assembly>::MessageModerationLambda.MessageModerationFunction::FunctionHandler; signature must match the EventBridge envelope shape.
     public void FunctionHandler(CloudWatchEvent<ModerationEvent> eventBridgeEvent, ILambdaContext context)
     {
         var moderationEvent = eventBridgeEvent.Detail;

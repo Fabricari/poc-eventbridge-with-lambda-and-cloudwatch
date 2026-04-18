@@ -1,35 +1,15 @@
 namespace MessageModerationLambda;
 
-public enum ModerationStatus
+public class MessageModerationService
 {
-    Clean,
-    Flagged
-}
-
-public class ModerationService
-{
+    // Mild, family-friendly terms that this demo treats as flagged content.
     private static readonly HashSet<string> FlaggedTerms = new(StringComparer.OrdinalIgnoreCase)
     {
-        "gee",
-        "golly",
-        "gosh",
-        "drat",
-        "rats",
-        "shoot",
-        "shucks",
-        "darn",
-        "dang",
-        "heck",
-        "frick",
-        "fudge",
-        "crud",
-        "poop",
-        "butt",
-        "crap",
-        "jerk",
-        "idiot"
+        "gee", "golly", "gosh", "drat", "rats", "shoot", "shucks", "darn", "dang", "heck",
+        "frick", "fudge", "crud", "poop", "butt", "crap", "jerk", "idiot"
     };
 
+    // Evaluates the incoming text and returns status, matched terms, and original content.
     public ModerationResult Evaluate(string text)
     {
         var words = text.Split([' ', '\t', '\n', '\r', ',', '.', '!', '?', ';', ':'],
@@ -51,9 +31,17 @@ public class ModerationService
     }
 }
 
+// Represents one moderation pass result for a submitted message.
 public class ModerationResult
 {
     public required ModerationStatus Status { get; init; }
     public required string[] MatchedTerms { get; init; }
     public required string OriginalText { get; init; }
+}
+
+// Defines the high-level moderation state for evaluated text.
+public enum ModerationStatus
+{
+    Clean,
+    Flagged
 }

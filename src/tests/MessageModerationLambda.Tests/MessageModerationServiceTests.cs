@@ -3,9 +3,9 @@ using Xunit;
 
 namespace MessageModerationLambda.Tests;
 
-public class ModerationServiceTests
+public class MessageModerationServiceTests
 {
-    private readonly ModerationService _service = new();
+    private readonly MessageModerationService _service = new();
 
     [Fact]
     public void CleanText_ReturnsClean()
