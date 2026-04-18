@@ -16,11 +16,11 @@ public class Function
         var moderationEvent = eventBridgeEvent.Detail;
 
         context.Logger.LogInformation(
-            $"DEMO | MESSAGE MODERATION | EventBridge invocation received: source={eventBridgeEvent.Source}; detail-type={eventBridgeEvent.DetailType}; event-id={eventBridgeEvent.Id}; text=\"{moderationEvent.Text}\"");
+            $"DEMO | MESSAGE MODERATION | Invocation received: trigger=EventBridge; source={eventBridgeEvent.Source}; detail-type={eventBridgeEvent.DetailType}; event-id={eventBridgeEvent.Id}; text=\"{moderationEvent.Text}\"");
 
         var result = _service.Evaluate(moderationEvent.Text);
 
         context.Logger.LogInformation(
-            $"DEMO | MESSAGE MODERATION | Moderation result: status={result.Status}; matched-terms={(result.MatchedTerms.Length > 0 ? string.Join(", ", result.MatchedTerms) : "none")}; original-text=\"{result.OriginalText}\"");
+            $"DEMO | MESSAGE MODERATION | Processing result: status={result.Status}; matched-terms={(result.MatchedTerms.Length > 0 ? string.Join(", ", result.MatchedTerms) : "none")}; original-text=\"{result.OriginalText}\"");
     }
 }

@@ -19,11 +19,11 @@ public class Function
         var text = queryParams["text"];
 
         context.Logger.LogInformation(
-            $"DEMO | MESSAGE SUBMISSION | Function URL invocation received: query-string=\"{queryString}\"; text=\"{text}\"");
+            $"DEMO | MESSAGE SUBMISSION | Invocation received: trigger=Function URL; query-string=\"{queryString}\"; text=\"{text}\"");
 
         var status = await _service.SubmitAsync(text);
 
-        context.Logger.LogInformation($"DEMO | MESSAGE SUBMISSION | Submission service result: status={status}");
+        context.Logger.LogInformation($"DEMO | MESSAGE SUBMISSION | Processing result: status={status}");
 
         var response = status switch
         {
