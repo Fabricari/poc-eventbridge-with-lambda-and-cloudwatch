@@ -2,71 +2,61 @@
 
 ## Purpose
 
-MessageSubmissionLambda is the HTTP-facing publisher function in this proof of concept.
-It receives a message from a Lambda Function URL request and hands it off to Amazon EventBridge for asynchronous moderation.
+MessageSubmissionLambda is the HTTP-facing publisher in this proof of concept.
+It accepts a message from a Lambda Function URL request and publishes a message-submitted event to Amazon EventBridge.
 
-This component is intentionally small. It prioritizes clarity over extensibility.
+This implementation is intentionally compact for demo readability.
 
-## Design Boundaries
+## Current Design Boundaries
 
-- Function.cs knows HTTP request/response handling.
-- MessageSubmissionService.cs knows publisher-side business flow.
-- ModerationHandoffPublisher.cs knows EventBridge SDK details.
-- SubmittedMessage.cs is the EventBridge detail payload contract.
+- MessageSubmissionFunction handles HTTP request parsing, minimal business decision flow, logging, and HTTP response shaping.
+- EventBridgeMessagePublisher handles EventBridge SDK request creation and publish execution.
+- No separate service class exists in the submission function because the business logic is intentionally small.
 
-No additional abstraction layers, optional extension points, or shared library contracts are introduced.
+This keeps the entrypoint easy to narrate while still isolating EventBridge SDK details from the handler.
 
 ## File Responsibilities
 
 | File | Responsibility |
 |---|---|
-| src/functions/MessageSubmissionLambda/Function.cs | Lambda entry point and HTTP adapter for Function URL requests |
-| src/functions/MessageSubmissionLambda/MessageSubmissionService.cs | Validates and normalizes input text, creates SubmittedMessage, and returns submission status |
-| src/functions/MessageSubmissionLambda/ModerationHandoffPublisher.cs | Reads EventBridge configuration from environment variables and publishes the event |
-| src/functions/MessageSubmissionLambda/SubmittedMessage.cs | Defines the detail payload with a single Text property |
+| src/functions/MessageSubmissionLambda/MessageSubmissionFunction.cs | Lambda entrypoint, query parsing, business outcome decision, response mapping, and demo logs |
+| src/functions/MessageSubmissionLambda/EventBridgeMessagePublisher.cs | Reads EventBridge environment settings and publishes one event entry |
 
-## HTTP Behavior (Function.cs)
+## Lambda Handler Contract
 
-The function treats the Lambda Function URL as a direct HTTP endpoint.
+- Handler method: FunctionHandler
+- Handler class: MessageSubmissionFunction
+- Handler path format: `<Assembly>::MessageSubmissionLambda.MessageSubmissionFunction::FunctionHandler`
+- Trigger shape: Lambda Function URL HTTP event bound to ApiRequest
 
-Expected input:
+## Request and Response Models
 
-- Query string parameter: text
+MessageSubmissionFunction contains minimal transport models:
 
-Behavior:
+- ApiRequest: RawQueryString
+- ApiResponse: StatusCode and Body
 
-- Logs request received.
-- Reads text from the query string.
-- Calls MessageSubmissionService.
-- Returns inline HTTP response based on service status.
+These models keep the contract explicit without introducing extra files for this demo.
 
-Response mapping:
+## End-to-End Flow
 
-- Accepted -> 200 OK, message indicates moderation handoff succeeded.
-- InvalidRequest -> 400 Bad Request, message indicates text is required.
-- PublishFailed -> 500 Internal Server Error, message indicates handoff did not succeed.
+1. Receive Function URL invocation and parse `text` from query string.
+2. Write an invocation log line with trigger and input values.
+3. Compute publish outcome: `null` for invalid input, otherwise publish trimmed text to EventBridge and capture success or failure.
+4. Shape HTTP response via switch expression from publish outcome.
+5. Write one result log line using the response message.
 
-## Business Flow (MessageSubmissionService.cs)
+## Response Mapping
 
-MessageSubmissionService owns the publisher-side flow:
+- `true` publish outcome -> `200 OK` and "Message handed off for moderation."
+- `false` publish outcome -> `500 Internal Server Error` and "Message handoff did not succeed. Please try again later."
+- `null` publish outcome (invalid text) -> `400 Bad Request` and "The 'text' query parameter is required and must not be blank."
 
-1. Validate input (missing/blank is invalid).
-2. Normalize input for the demo (trim whitespace).
-3. Create SubmittedMessage.
-4. Call ModerationHandoffPublisher.
-5. Return minimal status.
+## EventBridge Integration
 
-Status model:
+EventBridgeMessagePublisher is the only class in this Lambda that knows EventBridge SDK types.
 
-- Accepted
-- InvalidRequest
-- PublishFailed
-
-## EventBridge Integration (ModerationHandoffPublisher.cs)
-
-ModerationHandoffPublisher is the only class aware of EventBridge SDK request/response types.
-
-Environment variables used:
+Environment variables:
 
 - EVENT_BUS_NAME
 - EVENT_SOURCE
@@ -74,45 +64,28 @@ Environment variables used:
 
 Publish behavior:
 
-- Serialize SubmittedMessage as EventBridge detail JSON.
-- Build PutEvents request with one entry.
-- Log publish attempt.
-- Inspect PutEvents response for failed entries.
-- Log success or failure.
-- Return boolean publish outcome to the service.
+- Serialize detail JSON as `{ "Text": "..." }`.
+- Create `PutEventsRequest` with one entry.
+- Return `true` when no failed entries are reported.
+- Return `false` on failed entries or thrown exceptions.
 
-The publisher does not perform startup validation for bus existence. If configuration is wrong or the bus does not exist, publish failure is logged and returned as PublishFailed.
+## Logging for Demo Readability
 
-## Event Payload Contract (SubmittedMessage.cs)
+The submission handler emits two prefixed, human-readable log lines:
 
-SubmittedMessage is intentionally minimal for this proof of concept.
+- `DEMO | MESSAGE SUBMISSION | Invocation received ...`
+- `DEMO | MESSAGE SUBMISSION | Processing result: message="..."`
 
-Properties:
-
-- Text
-
-No IDs, timestamps, correlation fields, user metadata, or other extra fields are included.
-
-## Logging
-
-The function emits explicit logs for the core demo path:
-
-- request received
-- invalid input
-- publish attempted
-- publish succeeded or failed
-
-Logs are written through standard Lambda logging and appear in CloudWatch Logs.
+These are designed to stand out from Lambda platform logs in CloudWatch.
 
 ## Intentional Non-Goals
 
-This design intentionally avoids:
+This submission Lambda intentionally avoids:
 
-- API Gateway patterns and controllers
-- ASP.NET MVC or routing frameworks
+- API Gateway abstractions or web frameworks
 - dependency injection containers
-- shared project contracts with the moderation Lambda
-- third-party libraries
-- persistence and production hardening features
+- extra layering for tiny business logic
+- persistence, retries, idempotency hardening, and production-operational patterns
+- third-party libraries outside AWS SDK/Lambda packages
 
-The goal is to clearly demonstrate publisher-to-EventBridge handoff with minimal code.
+The goal is a clear and short demonstration of Function URL ingress followed by EventBridge handoff.
