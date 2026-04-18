@@ -111,8 +111,11 @@ The submission and moderation functions remain decoupled at the service level an
 
 ## Related Design Documents
 
-- docs/message-submission-lambda-design.md
-- docs/message-moderation-lambda-design.md
+Use these companion documents for implementation detail and manual environment setup beyond this high-level overview.
+
+- docs/message-submission-lambda-design.md - Publisher Lambda responsibilities, request flow, event publication behavior, and response mapping.
+- docs/message-moderation-lambda-design.md - Subscriber Lambda event handling, moderation logic, and output semantics.
+- docs/manual-aws-provisioning.md - Step-by-step AWS console provisioning values for Lambda, EventBridge, and end-to-end verification URLs.
 
 ## Intentional Non-Goals
 

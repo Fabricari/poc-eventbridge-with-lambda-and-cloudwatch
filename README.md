@@ -26,7 +26,7 @@ This project is intentionally narrow and portfolio-oriented.
 
 ## Documentation
 
-- Project overview: [docs/project-overview.md](docs/project-overview.md)
+- Project overview: [docs/README.md](docs/README.md)
 - Submission lambda design: [docs/message-submission-lambda-design.md](docs/message-submission-lambda-design.md)
 - Moderation lambda design: [docs/message-moderation-lambda-design.md](docs/message-moderation-lambda-design.md)
 - Architecture diagram: [docs/architecture/poc-eventbridge-lambda-cloudwatch.jpg](docs/architecture/poc-eventbridge-lambda-cloudwatch.jpg)
