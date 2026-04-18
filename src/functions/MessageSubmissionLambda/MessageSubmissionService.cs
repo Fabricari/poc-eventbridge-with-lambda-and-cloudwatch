@@ -1,5 +1,3 @@
-using Amazon.Lambda.Core;
-
 namespace MessageSubmissionLambda;
 
 public enum SubmissionStatus
@@ -13,11 +11,10 @@ public class MessageSubmissionService
 {
     private readonly ModerationHandoffPublisher _publisher = new();
 
-    public async Task<SubmissionStatus> SubmitAsync(string? text, ILambdaLogger logger)
+    public async Task<SubmissionStatus> SubmitAsync(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
         {
-            logger.LogWarning("Invalid input: text is missing or blank");
             return SubmissionStatus.InvalidRequest;
         }
 
@@ -25,7 +22,7 @@ public class MessageSubmissionService
 
         var message = new SubmittedMessage { Text = normalizedText };
 
-        var published = await _publisher.PublishAsync(message, logger);
+        var published = await _publisher.PublishAsync(message);
 
         return published ? SubmissionStatus.Accepted : SubmissionStatus.PublishFailed;
     }

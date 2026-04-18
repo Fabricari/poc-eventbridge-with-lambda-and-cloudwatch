@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Amazon.EventBridge;
 using Amazon.EventBridge.Model;
-using Amazon.Lambda.Core;
 
 namespace MessageSubmissionLambda;
 
@@ -19,7 +18,7 @@ public class ModerationHandoffPublisher
         _eventDetailType = Environment.GetEnvironmentVariable("EVENT_DETAIL_TYPE") ?? "";
     }
 
-    public async Task<bool> PublishAsync(SubmittedMessage message, ILambdaLogger logger)
+    public async Task<bool> PublishAsync(SubmittedMessage message)
     {
         var detail = JsonSerializer.Serialize(message);
 
@@ -37,25 +36,19 @@ public class ModerationHandoffPublisher
             ]
         };
 
-        logger.LogInformation($"Publishing event to bus '{_eventBusName}' with source '{_eventSource}'");
-
         try
         {
             var response = await _client.PutEventsAsync(request);
 
             if (response.FailedEntryCount > 0)
             {
-                var entry = response.Entries[0];
-                logger.LogError($"Publish failed: {entry.ErrorCode} - {entry.ErrorMessage}");
                 return false;
             }
 
-            logger.LogInformation("Publish succeeded");
             return true;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            logger.LogError($"Publish failed with exception: {ex.Message}");
             return false;
         }
     }
