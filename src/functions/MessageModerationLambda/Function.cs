@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Amazon.Lambda.CloudWatchEvents;
 using Amazon.Lambda.Core;
 
@@ -14,20 +13,14 @@ public class Function
     // Configure the Lambda handler as <Assembly>::MessageModerationLambda.Function::FunctionHandler; signature must match the EventBridge envelope shape.
     public void FunctionHandler(CloudWatchEvent<ModerationEvent> eventBridgeEvent, ILambdaContext context)
     {
-        context.Logger.LogInformation($"Event received: source={eventBridgeEvent.Source}, detail-type={eventBridgeEvent.DetailType}");
-
         var moderationEvent = eventBridgeEvent.Detail;
+
+        context.Logger.LogInformation(
+            $"DEMO | MESSAGE MODERATION | EventBridge invocation received: source={eventBridgeEvent.Source}; detail-type={eventBridgeEvent.DetailType}; event-id={eventBridgeEvent.Id}; text=\"{moderationEvent.Text}\"");
 
         var result = _service.Evaluate(moderationEvent.Text);
 
-        context.Logger.LogInformation(JsonSerializer.Serialize(new
-        {
-            status = result.Status.ToString().ToUpperInvariant(),
-            category = "mild-expletives",
-            matchedTerms = result.MatchedTerms.Length > 0
-                ? string.Join(", ", result.MatchedTerms)
-                : "none",
-            originalText = result.OriginalText
-        }));
+        context.Logger.LogInformation(
+            $"DEMO | MESSAGE MODERATION | Moderation result: status={result.Status}; matched-terms={(result.MatchedTerms.Length > 0 ? string.Join(", ", result.MatchedTerms) : "none")}; original-text=\"{result.OriginalText}\"");
     }
 }

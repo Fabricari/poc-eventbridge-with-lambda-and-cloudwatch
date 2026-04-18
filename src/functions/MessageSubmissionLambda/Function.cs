@@ -14,26 +14,16 @@ public class Function
     // Configure the Lambda handler as <Assembly>::MessageSubmissionLambda.Function::FunctionHandler; name is flexible, but signature must match the trigger JSON contract.
     public async Task<ApiResponse> FunctionHandler(ApiRequest request, ILambdaContext context)
     {
-        context.Logger.LogInformation("Submission function invoked via Function URL.");
-
         var queryString = request.RawQueryString ?? "";
         var queryParams = HttpUtility.ParseQueryString(queryString);
         var text = queryParams["text"];
 
-        context.Logger.LogInformation($"Incoming query string: {(string.IsNullOrEmpty(queryString) ? "<empty>" : queryString)}");
         context.Logger.LogInformation(
-            text is null
-                ? "Parsed 'text' parameter: <missing>"
-                : string.IsNullOrWhiteSpace(text)
-                    ? "Parsed 'text' parameter: <blank>"
-                    : $"Parsed 'text' parameter: \"{text}\"");
-
-        if (!string.IsNullOrWhiteSpace(text))
-        {
-            context.Logger.LogInformation("Routing message to the moderation handoff service.");
-        }
+            $"DEMO | MESSAGE SUBMISSION | Function URL invocation received: query-string=\"{queryString}\"; text=\"{text}\"");
 
         var status = await _service.SubmitAsync(text);
+
+        context.Logger.LogInformation($"DEMO | MESSAGE SUBMISSION | Submission service result: status={status}");
 
         var response = status switch
         {
@@ -58,9 +48,6 @@ public class Function
                 Body = "Unexpected error."
             }
         };
-
-        context.Logger.LogInformation(
-            $"Submission outcome: {status}; HTTP {response.StatusCode}; response=\"{response.Body}\"");
 
         return response;
     }
