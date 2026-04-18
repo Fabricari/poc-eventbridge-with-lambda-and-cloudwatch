@@ -13,109 +13,66 @@ The scenario is intentionally small and portfolio-friendly:
 
 The goal is clarity of event flow, not production hardening.
 
-## Purpose
-
-This repository exists to demonstrate architectural decoupling:
-
-- The submission service owns request intake and event publication.
-- The moderation service owns moderation policy and evaluation.
-- EventBridge owns routing between them.
-
-This is not a production moderation platform. It is a focused demonstration of asynchronous handoff and service boundary separation.
-
 ## Architecture at a Glance
 
 ![Event-driven moderation architecture](architecture/poc-eventbridge-lambda-cloudwatch.jpg)
 
 *Architecture diagram: Browser -> Function URL -> MessageSubmissionLambda -> EventBridge -> MessageModerationLambda -> CloudWatch Logs.*
 
-- Browser client
-- Lambda Function URL
-- MessageSubmissionLambda (.NET Lambda publisher)
-- Custom EventBridge event bus and rule
-- MessageModerationLambda (.NET Lambda subscriber)
-- CloudWatch Logs
+At a high level:
 
-## Current Component Responsibilities
+- Browser input reaches Lambda through a Function URL.
+- Submission Lambda publishes a custom event to EventBridge.
+- EventBridge routes the event to the moderation Lambda.
+- Both functions write observable logs to CloudWatch.
 
-### MessageSubmissionLambda
+## Infrastructure Snapshot
 
-- Entry class: MessageSubmissionFunction
-- Handler: FunctionHandler
-- Handler path format: `<Assembly>::MessageSubmissionLambda.MessageSubmissionFunction::FunctionHandler`
-- Responsibilities:
-  - Parse query-string text input.
-  - Decide publish outcome (invalid input, publish success, publish failure).
-  - Shape immediate HTTP response.
-  - Write two demo log lines.
+These are the key infrastructure values used across the demo:
 
-Publisher details are isolated in EventBridgeMessagePublisher, which reads EventBridge configuration from environment variables and performs the PutEvents call.
-
-### EventBridge
-
-- Receives the message-submitted event published by MessageSubmissionLambda.
-- Evaluates event rule matching.
-- Invokes MessageModerationLambda asynchronously.
-
-The publisher does not directly invoke the subscriber.
-
-### MessageModerationLambda
-
-- Entry class: MessageModerationFunction
-- Handler: FunctionHandler
-- Handler path format: `<Assembly>::MessageModerationLambda.MessageModerationFunction::FunctionHandler`
-- Responsibilities:
-  - Bind EventBridge envelope and deserialize detail text.
-  - Log invocation metadata and moderation outcome.
-  - Delegate text evaluation to MessageModerationService.
-
-MessageModerationService contains the moderation rules and models:
-
-- HashSet of mild flagged terms.
-- Text splitting, case-insensitive matching, deduping, and sorting.
-- ModerationResult with ModerationStatus (Clean or Flagged).
-
-### CloudWatch Logs
-
-CloudWatch is the observable proof of asynchronous execution.
-
-- Submission logs show receipt and handoff result.
-- Moderation logs show subscriber invocation and moderation output.
-
-Both functions use consistent prefixed messages so demo lines stand out from platform logs.
-
-## End-to-End Flow
-
-1. A browser calls the Function URL with query parameter text.
-2. MessageSubmissionFunction validates input and publishes an event when text is present.
-3. MessageSubmissionFunction returns an immediate HTTP response.
-4. EventBridge matches and routes the event.
-5. MessageModerationFunction is invoked asynchronously.
-6. MessageModerationService evaluates text and returns moderation result.
-7. Both functions emit demo-prefixed CloudWatch logs.
+| Area | Value |
+|---|---|
+| Publisher Lambda | `MessageSubmissionLambda` |
+| Publisher handler | `MessageSubmissionLambda::MessageSubmissionLambda.MessageSubmissionFunction::FunctionHandler` |
+| Publisher Function URL auth | `NONE` |
+| Subscriber Lambda | `MessageModerationLambda` |
+| Subscriber handler | `MessageModerationLambda::MessageModerationLambda.MessageModerationFunction::FunctionHandler` |
+| Event bus | `message-moderation-bus` |
+| Event rule | `route-to-moderation-lambda` |
+| Event pattern source | `message-submission-service` |
+| Event pattern detail-type | `MessageSubmitted` |
+| Publisher env var `EVENT_BUS_NAME` | `message-moderation-bus` |
+| Publisher env var `EVENT_SOURCE` | `message-submission-service` |
+| Publisher env var `EVENT_DETAIL_TYPE` | `MessageSubmitted` |
 
 ## Event Contract Boundary
 
-The publisher emits event detail as JSON with a single Text field.
-
-Conceptually:
+The publisher emits one custom event detail field (`Text`) to EventBridge:
 
 ```yaml
-source: <EVENT_SOURCE>
-detail-type: <EVENT_DETAIL_TYPE>
+source: message-submission-service
+detail-type: MessageSubmitted
 detail:
   Text: "example message"
 ```
 
-The submission and moderation functions remain decoupled at the service level and communicate through this event boundary.
+This contract is the decoupling boundary between submission and moderation services.
+
+## End-to-End Flow
+
+1. A browser calls the publisher Function URL with a text query parameter.
+2. The publisher Lambda validates input and publishes a custom EventBridge event.
+3. The publisher returns an immediate HTTP response to the browser.
+4. EventBridge matches and routes the event to the subscriber Lambda.
+5. The subscriber Lambda evaluates the message and logs the moderation outcome.
 
 ## Related Design Documents
 
 Use these companion documents for implementation detail and manual environment setup beyond this high-level overview.
 
-- docs/message-submission-lambda-design.md - Publisher Lambda responsibilities, request flow, event publication behavior, and response mapping.
-- docs/message-moderation-lambda-design.md - Subscriber Lambda event handling, moderation logic, and output semantics.
-- docs/manual-aws-provisioning.md - Step-by-step AWS console provisioning values for Lambda, EventBridge, and end-to-end verification URLs.
+- [MessageSubmissionLambda Design](message-submission-lambda-design.md) - Publisher Lambda responsibilities, request flow, event publication behavior, and response mapping.
+- [MessageModerationLambda Design](message-moderation-lambda-design.md) - Subscriber Lambda event handling, moderation logic, and output semantics.
+- [Manual AWS Provisioning](manual-aws-provisioning.md) - AWS console provisioning values for Lambda, EventBridge, and end-to-end verification URLs.
 
 ## Intentional Non-Goals
 
