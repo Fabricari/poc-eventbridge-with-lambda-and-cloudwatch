@@ -4,15 +4,24 @@ public class ModerationService
 {
     private static readonly HashSet<string> FlaggedTerms = new(StringComparer.OrdinalIgnoreCase)
     {
-        "poop",
-        "crap",
-        "dang",
+        "gee",
+        "golly",
         "gosh",
+        "drat",
+        "rats",
+        "shoot",
+        "shucks",
         "darn",
+        "dang",
         "heck",
         "frick",
+        "fudge",
+        "crud",
+        "poop",
         "butt",
-        "crud"
+        "crap",
+        "jerk",
+        "idiot"
     };
 
     public ModerationResult Evaluate(string text)

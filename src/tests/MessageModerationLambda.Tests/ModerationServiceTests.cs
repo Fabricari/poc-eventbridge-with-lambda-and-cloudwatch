@@ -79,15 +79,24 @@ public class ModerationServiceTests
     }
 
     [Theory]
-    [InlineData("poop")]
-    [InlineData("crap")]
-    [InlineData("dang")]
+    [InlineData("gee")]
+    [InlineData("golly")]
     [InlineData("gosh")]
+    [InlineData("drat")]
+    [InlineData("rats")]
+    [InlineData("shoot")]
+    [InlineData("shucks")]
     [InlineData("darn")]
+    [InlineData("dang")]
     [InlineData("heck")]
     [InlineData("frick")]
-    [InlineData("butt")]
+    [InlineData("fudge")]
     [InlineData("crud")]
+    [InlineData("poop")]
+    [InlineData("crap")]
+    [InlineData("butt")]
+    [InlineData("jerk")]
+    [InlineData("idiot")]
     public void EachFlaggedTerm_IsDetected(string term)
     {
         var result = _service.Evaluate($"this is {term} right here");
