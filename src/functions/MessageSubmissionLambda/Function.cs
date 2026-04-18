@@ -2,6 +2,7 @@ using System.Net;
 using System.Web;
 using Amazon.Lambda.Core;
 
+// Selects the JSON serializer Lambda uses to bind input events to handler parameters and serialize return values.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
 namespace MessageSubmissionLambda;
@@ -10,6 +11,7 @@ public class Function
 {
     private readonly MessageSubmissionService _service = new();
 
+    // Configure the Lambda handler as <Assembly>::MessageSubmissionLambda.Function::FunctionHandler; name is flexible, but signature must match the trigger JSON contract.
     public async Task<ApiResponse> FunctionHandler(ApiRequest request, ILambdaContext context)
     {
         context.Logger.LogInformation("Request received");
@@ -46,11 +48,13 @@ public class Function
     }
 }
 
+// Minimal JSON-mapped input model so the serializer can bind the Function URL event field we use.
 public class ApiRequest
 {
     public string? RawQueryString { get; set; }
 }
 
+// Minimal JSON-mapped output model so the serializer can produce HTTP status/body in the Lambda response payload.
 public class ApiResponse
 {
     public int StatusCode { get; set; }

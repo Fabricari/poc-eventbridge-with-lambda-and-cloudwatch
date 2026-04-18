@@ -2,6 +2,7 @@ using System.Text.Json;
 using Amazon.Lambda.CloudWatchEvents;
 using Amazon.Lambda.Core;
 
+// Selects the JSON serializer Lambda uses to bind EventBridge event JSON to handler parameters.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
 namespace MessageModerationLambda;
@@ -10,6 +11,7 @@ public class Function
 {
     private readonly ModerationService _service = new();
 
+    // Configure the Lambda handler as <Assembly>::MessageModerationLambda.Function::FunctionHandler; signature must match the EventBridge envelope shape.
     public void FunctionHandler(CloudWatchEvent<ModerationEvent> eventBridgeEvent, ILambdaContext context)
     {
         context.Logger.LogInformation($"Event received: source={eventBridgeEvent.Source}, detail-type={eventBridgeEvent.DetailType}");
