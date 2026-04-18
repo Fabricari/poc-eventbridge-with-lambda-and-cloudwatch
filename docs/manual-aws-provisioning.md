@@ -171,7 +171,22 @@ The execution roles in step 2 control what each Lambda can call out to. This ste
 2. Go to **Configuration** > **Permissions**.
 3. Under **Resource-based policy statements**, verify an entry exists allowing `lambda:InvokeFunction` from the `events.amazonaws.com` service principal.
 
-If the statement is missing, add it manually:
+If the statement is missing, add it from the current console UI:
+
+1. Choose **Add permissions**.
+2. In **Edit policy statement**, choose **AWS service**.
+3. Service: **EventBridge (CloudWatch Events)**.
+4. Statement ID: use a value such as `AllowEventBridgeInvoke`.
+5. Action: `lambda:InvokeFunction`.
+6. Source ARN: use the **rule ARN**, not the event bus ARN:
+
+```
+arn:aws:events:<region>:<account-id>:rule/message-moderation-bus/route-to-moderation-lambda
+```
+
+7. Choose **Save**.
+
+Equivalent policy statement:
 
 ```json
 {
