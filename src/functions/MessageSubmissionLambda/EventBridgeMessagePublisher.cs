@@ -4,14 +4,14 @@ using Amazon.EventBridge.Model;
 
 namespace MessageSubmissionLambda;
 
-public class ModerationHandoffPublisher
+public class EventBridgeMessagePublisher
 {
     private readonly string _eventBusName;
     private readonly string _eventSource;
     private readonly string _eventDetailType;
     private readonly AmazonEventBridgeClient _client = new();
 
-    public ModerationHandoffPublisher()
+    public EventBridgeMessagePublisher()
     {
         _eventBusName = Environment.GetEnvironmentVariable("EVENT_BUS_NAME") ?? "";
         _eventSource = Environment.GetEnvironmentVariable("EVENT_SOURCE") ?? "";

@@ -7,7 +7,7 @@ namespace MessageSubmissionLambda.Tests;
 
 public class FunctionTests
 {
-    private readonly Function _function = new();
+    private readonly MessageSubmissionFunction _function = new();
     private readonly TestLambdaContext _context = new();
 
     [Fact]
