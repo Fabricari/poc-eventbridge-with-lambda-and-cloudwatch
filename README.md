@@ -2,17 +2,31 @@
 
 This repository contains a proof of concept that demonstrates an event-driven serverless architecture on AWS using a lightweight text moderation scenario.
 
-The project is designed to show how an HTTP-facing service can publish business events without being tightly coupled to downstream processing logic. A separate moderation service consumes those events asynchronously, keeping service responsibilities clear and independent.
+The demo shows a decoupled flow:
 
-## What This Repository Is For
+- An HTTP-facing .NET Lambda receives message input through a Lambda Function URL.
+- The submission Lambda publishes a custom event to EventBridge.
+- A separate .NET moderation Lambda subscribes asynchronously and evaluates the text.
+- Both functions write demo-focused logs to CloudWatch.
 
-This project exists to illustrate the architectural value of using an event bus for decoupling and asynchronous handoff between services. It is intentionally scoped as a learning and portfolio demo rather than a production moderation platform.
+## Scope
+
+This project is intentionally narrow and portfolio-oriented.
+
+- Focus: architectural decoupling and asynchronous handoff with EventBridge.
+- Goal: clear service boundaries and observable event flow.
+- Non-goal: production-grade moderation platform.
 
 ## Technology Summary
 
-- .NET Lambda functions for request intake and moderation processing.
-- AWS Lambda Function URL as a simple HTTPS entry point.
-- Amazon EventBridge as the event routing layer.
-- Amazon CloudWatch Logs for observability of the asynchronous flow.
+- .NET Lambda functions for submission and moderation.
+- AWS Lambda Function URL as the HTTPS ingress.
+- Amazon EventBridge as the routing layer.
+- Amazon CloudWatch Logs for asynchronous observability.
 
-The implementation is intentionally minimal so the event-driven design remains the focus.
+## Documentation
+
+- Project overview: [docs/project-overview.md](docs/project-overview.md)
+- Submission lambda design: [docs/message-submission-lambda-design.md](docs/message-submission-lambda-design.md)
+- Moderation lambda design: [docs/message-moderation-lambda-design.md](docs/message-moderation-lambda-design.md)
+- Architecture diagram: [docs/architecture/poc-eventbridge-lambda-cloudwatch.jpg](docs/architecture/poc-eventbridge-lambda-cloudwatch.jpg)
