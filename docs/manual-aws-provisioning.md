@@ -19,9 +19,11 @@ All steps assume you are signed in to the AWS Console and working in a single re
 
 ## 1. Create the Custom Event Bus
 
+The default EventBridge bus handles AWS service events. This demo uses a dedicated custom bus so that published messages are isolated from system traffic and can be routed with their own rules.
+
 1. Open the **Amazon EventBridge Console** > **Event buses**.
 2. Choose **Create event bus**.
-3. Complete the form:
+3. Enter the following values:
 
 | Section | Setting | Value |
 |---|---|---|
@@ -30,96 +32,110 @@ All steps assume you are signed in to the AWS Console and working in a single re
 | Logs | Log destinations | **No log destinations selected** (default) |
 
 4. Choose **Create**.
-5. Copy the event bus ARN for later steps (for example, `arn:aws:events:<region>:<account-id>:event-bus/message-moderation-bus`).
+5. Copy the event bus ARN for later steps.
+
+Example ARN format:
+
+```
+arn:aws:events:<region>:<account-id>:event-bus/message-moderation-bus
+```
 
 ---
 
 ## 2. Create IAM Execution Roles
 
-Each Lambda function assumes an IAM execution role that controls which AWS services the function itself can call. The publisher Lambda needs permission to write events to EventBridge, while the subscriber Lambda only needs the default permission to write logs to CloudWatch. Separate roles are shown below to keep these permissions scoped to each function.
+Each Lambda function assumes an IAM execution role that controls which AWS services the function can call at runtime. The publisher needs permission to write events to EventBridge, while the subscriber only needs the default CloudWatch Logs permission. Creating separate roles keeps each function's access scoped to exactly what it requires.
 
 ### Publisher Role (MessageSubmissionLambda)
 
 1. Open the **IAM Console** > **Roles** > **Create role**.
-2. In **Select trusted entity**:
-  - Trusted entity type: **AWS service**
-  - Service or use case: **Lambda**
-  - Use case: **Lambda (Default)**
-  - Choose **Next**
-3. In **Add permissions**:
-  - Attach policy: **AWSLambdaBasicExecutionRole**
-  - Choose **Next**
-4. In **Name, review, and create**:
-  - Role name: `MessageSubmissionLambdaRole`
-  - Choose **Create role**
-5. After the role is created, add an inline policy:
-  - Choose **Add permissions** > **Create inline policy**
-  - Service: **EventBridge**
-  - Actions allowed: **PutEvents**
-  - Resources: **Add ARNs**
-  - Resource ARN: paste the event bus ARN from step 1
-  - Choose **Add ARNs**
-  - Choose **Next**
-6. In **Review and create**:
-  - Policy name: `AllowEventBridgePutEventsPolicy`
-  - Choose **Create policy**
-7. Confirm the role now has both policies attached:
-  - `AWSLambdaBasicExecutionRole`
-  - `AllowEventBridgePutEventsPolicy`
+2. In **Select trusted entity**, use:
+
+| Setting | Value |
+|---|---|
+| Trusted entity type | **AWS service** |
+| Service or use case | **Lambda** |
+| Use case | **Lambda (Default)** |
+
+3. Choose **Next**.
+4. In **Add permissions**, attach **AWSLambdaBasicExecutionRole**.
+5. Choose **Next**.
+6. In **Name, review, and create**, use:
+
+| Setting | Value |
+|---|---|
+| Role name | `MessageSubmissionLambdaRole` |
+
+7. Choose **Create role**.
+8. Open the new role and choose **Add permissions** > **Create inline policy**.
+9. Configure the inline policy:
+
+| Setting | Value |
+|---|---|
+| Service | **EventBridge** |
+| Actions allowed | **PutEvents** |
+| Resources | **Add ARNs** |
+| Resource ARN | Event bus ARN from step 1 |
+
+10. Choose **Add ARNs**, then choose **Next**.
+11. In **Review and create**, set policy name to `AllowEventBridgePutEventsPolicy`.
+12. Choose **Create policy**.
+13. Confirm both policies are attached to the role:
+    - `AWSLambdaBasicExecutionRole`
+    - `AllowEventBridgePutEventsPolicy`
 
 ### Subscriber Role (MessageModerationLambda)
 
 1. Open the **IAM Console** > **Roles** > **Create role**.
-2. In **Select trusted entity**:
-  - Trusted entity type: **AWS service**
-  - Service or use case: **Lambda**
-  - Use case: **Lambda (Default)**
-  - Choose **Next**
-3. In **Add permissions**:
-  - Attach policy: **AWSLambdaBasicExecutionRole**
-  - Choose **Next**
-4. In **Name, review, and create**:
-  - Role name: `MessageModerationLambdaRole`
-  - Choose **Create role**
+2. In **Select trusted entity**, use:
 
-No additional inline policies are required for this subscriber role.
+| Setting | Value |
+|---|---|
+| Trusted entity type | **AWS service** |
+| Service or use case | **Lambda** |
+| Use case | **Lambda (Default)** |
+
+3. Choose **Next**.
+4. In **Add permissions**, attach **AWSLambdaBasicExecutionRole**.
+5. Choose **Next**.
+6. In **Name, review, and create**, set role name to `MessageModerationLambdaRole`.
+7. Choose **Create role**.
+
+No additional inline policy is required for this subscriber role.
 
 ---
 
 ## 3. Create the Lambda Functions
 
+These are the two .NET 10 Lambda functions that make up the demo. The submission function receives HTTP requests via a Function URL and publishes events to the custom bus. The moderation function subscribes to those events through the EventBridge rule created in the next step.
+
 ### MessageSubmissionLambda (Publisher with Function URL)
 
 1. Open the **Lambda Console** > **Functions** > **Create function**.
 2. Keep **Author from scratch** selected.
-3. In **Basic information**:
+3. In **Basic information**, set:
 
 | Setting | Value |
 |---|---|
 | Function name | `MessageSubmissionLambda` |
 | Runtime | **.NET 10 (C#/F#/PowerShell)** |
 
-4. In **Additional settings**:
-  - Under **Execution role**, select **Use an existing role** and choose `MessageSubmissionLambdaRole`, then choose **Save**
-  - Under **Function URL**, set:
-    - Auth type: **NONE**
-    - Invoke mode: **BUFFERED** (default)
-    - Choose **Save**
-5. Choose **Create function**.
-6. Copy the generated Function URL for testing.
-7. Upload the deployment package:
-  - **Code** tab > **Upload from** > **.zip file**
-  - Select `packages/MessageSubmissionLambda/MessageSubmissionLambda.zip`
-  - Choose **Save**
-8. Under **Runtime settings**, choose **Edit** and set the handler:
+4. Expand **Additional settings**.
+5. Under **Execution role**, select **Use an existing role**, choose `MessageSubmissionLambdaRole`, and choose **Save**.
+6. Under **Function URL**, set auth type to **NONE** and invoke mode to **BUFFERED** (default), then choose **Save**.
+7. Choose **Create function**.
+8. Copy the generated Function URL for testing.
+9. In the **Code** tab, choose **Upload from** > **.zip file**.
+10. Select `packages/MessageSubmissionLambda/MessageSubmissionLambda.zip` and choose **Save**.
+11. In **Runtime settings**, choose **Edit** and set the handler to:
 
 ```
 MessageSubmissionLambda::MessageSubmissionLambda.MessageSubmissionFunction::FunctionHandler
 ```
 
-Then choose **Save**.
-
-9. Under **Configuration** > **Environment variables** > **Edit**, add:
+12. Choose **Save**.
+13. Go to **Configuration** > **Environment variables** and choose **Edit**.
+14. Add the following variables:
 
 | Key | Value |
 |---|---|
@@ -127,32 +143,31 @@ Then choose **Save**.
 | `EVENT_SOURCE` | `message-submission-service` |
 | `EVENT_DETAIL_TYPE` | `MessageSubmitted` |
 
-Then choose **Save**.
+15. Choose **Save**.
 
 ### MessageModerationLambda (Subscriber)
 
 1. Open the **Lambda Console** > **Functions** > **Create function**.
 2. Keep **Author from scratch** selected.
-3. In **Basic information**:
+3. In **Basic information**, set:
 
 | Setting | Value |
 |---|---|
 | Function name | `MessageModerationLambda` |
 | Runtime | **.NET 10 (C#/F#/PowerShell)** |
 
-4. In **Additional settings**, set **Execution role** to **Use an existing role** and choose `MessageModerationLambdaRole`, then choose **Save**.
-5. Choose **Create function**.
-6. Upload the deployment package:
-  - **Code** tab > **Upload from** > **.zip file**
-  - Select `packages/MessageModerationLambda/MessageModerationLambda.zip`
-  - Choose **Save**
-7. Under **Runtime settings**, choose **Edit** and set the handler:
+4. Expand **Additional settings**.
+5. Under **Execution role**, select **Use an existing role**, choose `MessageModerationLambdaRole`, and choose **Save**.
+6. Choose **Create function**.
+7. In the **Code** tab, choose **Upload from** > **.zip file**.
+8. Select `packages/MessageModerationLambda/MessageModerationLambda.zip` and choose **Save**.
+9. In **Runtime settings**, choose **Edit** and set the handler to:
 
 ```
 MessageModerationLambda::MessageModerationLambda.MessageModerationFunction::FunctionHandler
 ```
 
-Then choose **Save**.
+10. Choose **Save**.
 
 No environment variables are required for this function.
 
@@ -160,7 +175,7 @@ No environment variables are required for this function.
 
 ## 4. Create the EventBridge Rule
 
-The rule matches events published by the submission Lambda and routes them to the moderation Lambda.
+A rule on the custom bus filters incoming events by source and detail type, then forwards matching events to a target. This rule connects the two Lambda functions: it listens for events published by the submission function and invokes the moderation function with the event payload.
 
 1. Open the **EventBridge Console** > **Rules** > **Create rule**.
 2. If **Visual rule builder** is selected, deselect it.
@@ -172,11 +187,8 @@ The rule matches events published by the submission Lambda and routes them to th
 | Event bus | `message-moderation-bus` |
 | Rule state | **Enabled** |
 
-Then choose **Next**.
-
-4. In **Build event pattern**:
-  - Select **Custom pattern (JSON editor)**
-  - Enter:
+4. Choose **Next**.
+5. In **Build event pattern**, choose **Custom pattern (JSON editor)** and enter:
 
 ```json
 {
@@ -185,36 +197,41 @@ Then choose **Next**.
 }
 ```
 
-  - Choose **Next**
+6. Choose **Next**.
+7. In **Select target(s)**, set:
 
-These values must match `EVENT_SOURCE` and `EVENT_DETAIL_TYPE` from the publisher Lambda.
+| Setting | Value |
+|---|---|
+| Target types | **AWS service** |
+| Select a target | **Lambda function** |
+| Function | **MessageModerationLambda** |
 
-5. In **Select target(s)**:
-  - Target types: **AWS service**
-  - Select a target: **Lambda function**
-  - Function: **MessageModerationLambda**
-  - Choose **Next**
-6. In **Configure tags**, choose **Next**.
-7. In **Review and create**, choose **Create rule**.
-8. Copy the rule ARN for the Lambda permission step.
+8. Choose **Next**.
+9. In **Configure tags**, choose **Next**.
+10. In **Review and create**, choose **Create rule**.
+11. Copy the rule ARN for the Lambda permission step.
 
 ---
 
 ## 5. Verify the Lambda Resource-Based Policy
 
-The execution roles in step 2 control what each Lambda can call out to. This step covers the reverse direction: the resource-based policy on the moderation Lambda controls what is allowed to invoke it.
+Execution roles control what a Lambda can call out to. A resource-based policy controls the opposite — what is allowed to invoke the Lambda. The moderation function needs a policy statement granting EventBridge permission to invoke it when the rule fires. This statement should reference the specific rule ARN so that only the intended rule can trigger the function.
 
 1. Open **MessageModerationLambda** in the Lambda Console.
 2. Go to **Configuration** > **Permissions**.
-3. Under **Resource-based policy statements**, verify the list is currently empty.
+3. Under **Resource-based policy statements**, verify the list is empty.
 4. Choose **Add permission**.
 5. In **Edit policy statement**, set:
-  - Policy statement type: **AWS service**
-  - Service: **EventBridge (CloudWatch Events)**
-  - Statement ID: `AllowEventBridgeInvoke`
-  - Principal: `events.amazonaws.com` (default)
-  - Source ARN: the EventBridge rule ARN from step 4 (not the event bus ARN)
-  - Action: `lambda:InvokeFunction`
+
+| Setting | Value |
+|---|---|
+| Policy statement type | **AWS service** |
+| Service | **EventBridge (CloudWatch Events)** |
+| Statement ID | `AllowEventBridgeInvoke` |
+| Principal | `events.amazonaws.com` (default) |
+| Source ARN | Rule ARN from step 4 |
+| Action | `lambda:InvokeFunction` |
+
 6. Choose **Save**.
 
 Rule ARN format:
@@ -245,37 +262,33 @@ Equivalent policy statement:
 
 ## 6. Test the End-to-End Flow
 
+With all resources in place, a browser request to the submission Lambda's Function URL should publish an event, trigger the moderation Lambda through EventBridge, and produce log output in both functions' CloudWatch log groups.
+
+### Baseline Request
+
 1. Start with the base Function URL copied from **MessageSubmissionLambda**:
 
 ```
 https://<function-url-id>.lambda-url.<region>.on.aws/
 ```
 
-2. Add a query string parameter for the message text:
+2. Add a query string parameter:
 
 | Query key | Query value |
 |---|---|
 | `text` | `hello world` |
 
-Example full URL:
+3. Example full URL:
 
 ```
 https://<function-url-id>.lambda-url.<region>.on.aws/?text=hello+world
 ```
 
-3. Expect a `200` response: **"Message handed off for moderation."**
-
-4. Check logs from each Lambda function page:
-  - Open **MessageSubmissionLambda** > **Monitor** > **View CloudWatch logs**
-  - Open **MessageModerationLambda** > **Monitor** > **View CloudWatch logs**
-5. In the CloudWatch log view, clear date/time filters first, then apply filter text `DEMO`.
-6. Verify expected log output in both groups:
-  - `/aws/lambda/MessageSubmissionLambda` should include `DEMO | MESSAGE SUBMISSION`
-  - `/aws/lambda/MessageModerationLambda` should include `DEMO | MESSAGE MODERATION`
+4. Expect a `200` response with: **"Message handed off for moderation."**
 
 ### Additional Test Query Values
 
-Use the same base Function URL and change only the `text` query value. These test cases cover every flagged term in the moderation word list.
+Use the same base Function URL and change only the `text` query value.
 
 ```
 gee+golly+I+did+not+expect+that
@@ -290,28 +303,21 @@ some+jerk+called+me+an+idiot+at+the+store
 get+your+butt+over+here+you+left+poop+on+the+floor
 ```
 
-Each test should return `200`, and the moderation Lambda logs should show `Flagged` status with matched terms listed alphabetically.
+Each request should return `200`.
 
----
+### CloudWatch Verification (After Testing)
 
-## Configuration Reference
+1. Open **MessageSubmissionLambda** > **Monitor** > **View CloudWatch logs**.
+2. Open **MessageModerationLambda** > **Monitor** > **View CloudWatch logs**.
+3. In each log view, clear date/time filters first.
+4. Apply filter text `DEMO`.
+5. Verify expected log output in both log groups:
 
-| Resource | Key Setting | Value |
-|---|---|---|
-| Publisher Lambda | Function name | `MessageSubmissionLambda` |
-| Publisher Lambda | Runtime | `dotnet10` |
-| Publisher Lambda | Handler | `MessageSubmissionLambda::MessageSubmissionLambda.MessageSubmissionFunction::FunctionHandler` |
-| Publisher Lambda | Env: `EVENT_BUS_NAME` | `message-moderation-bus` |
-| Publisher Lambda | Env: `EVENT_SOURCE` | `message-submission-service` |
-| Publisher Lambda | Env: `EVENT_DETAIL_TYPE` | `MessageSubmitted` |
-| Publisher Lambda | Function URL auth type | `NONE` |
-| Publisher Lambda | Function URL invoke mode | `BUFFERED` |
-| Subscriber Lambda | Function name | `MessageModerationLambda` |
-| Subscriber Lambda | Runtime | `dotnet10` |
-| Subscriber Lambda | Handler | `MessageModerationLambda::MessageModerationLambda.MessageModerationFunction::FunctionHandler` |
-| Event Bus | Name | `message-moderation-bus` |
-| EventBridge Rule | Name | `route-to-moderation-lambda` |
-| EventBridge Rule | Rule state | `Enabled` |
-| EventBridge Rule | Event pattern source | `message-submission-service` |
-| EventBridge Rule | Event pattern detail-type | `MessageSubmitted` |
-| EventBridge Rule | Target | `MessageModerationLambda` |
+| Log group | Expected text |
+|---|---|
+| `/aws/lambda/MessageSubmissionLambda` | `DEMO \| MESSAGE SUBMISSION` |
+| `/aws/lambda/MessageModerationLambda` | `DEMO \| MESSAGE MODERATION` |
+
+6. For flagged test values, confirm moderation logs show `Flagged` with matched terms listed alphabetically.
+
+
