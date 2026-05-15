@@ -1,0 +1,1 @@
+This project uses OpenTofu, a Terraform-compatible Infrastructure as Code tool, to provision the AWS resources for the EventBridge/Lambda/CloudWatch demo.
