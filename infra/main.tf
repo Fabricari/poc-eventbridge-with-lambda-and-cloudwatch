@@ -12,12 +12,17 @@ provider "aws" {
 }
 
 locals {
-  event_bus_name    = "message-moderation-bus"
+  event_bus_name    = "message-moderation-bus-tofu-test"
   event_source      = "message-submission-service"
   event_detail_type = "MessageSubmitted"
 
-  submission_lambda_name = "MessageSubmissionLambda"
-  moderation_lambda_name = "MessageModerationLambda"
+  submission_lambda_name = "MessageSubmissionLambdaTofuTest"
+  moderation_lambda_name = "MessageModerationLambdaTofuTest"
+
+  submission_role_name = "MessageSubmissionLambdaRoleTofuTest"
+  moderation_role_name = "MessageModerationLambdaRoleTofuTest"
+
+  event_rule_name = "route-to-moderation-lambda-tofu-test"
 
   submission_zip_path = "${path.module}/../packages/MessageSubmissionLambda/MessageSubmissionLambda.zip"
   moderation_zip_path = "${path.module}/../packages/MessageModerationLambda/MessageModerationLambda.zip"
@@ -28,7 +33,7 @@ resource "aws_cloudwatch_event_bus" "message_moderation_bus" {
 }
 
 resource "aws_iam_role" "message_submission_lambda_role" {
-  name = "MessageSubmissionLambdaRole"
+  name = local.submission_role_name
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -43,7 +48,7 @@ resource "aws_iam_role" "message_submission_lambda_role" {
 }
 
 resource "aws_iam_role" "message_moderation_lambda_role" {
-  name = "MessageModerationLambdaRole"
+  name = local.moderation_role_name
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -68,7 +73,7 @@ resource "aws_iam_role_policy_attachment" "moderation_basic_execution" {
 }
 
 resource "aws_iam_role_policy" "allow_eventbridge_put_events_policy" {
-  name = "AllowEventBridgePutEventsPolicy"
+  name = "AllowEventBridgePutEventsPolicyTofuTest"
   role = aws_iam_role.message_submission_lambda_role.id
 
   policy = jsonencode({
@@ -124,7 +129,7 @@ resource "aws_lambda_function_url" "message_submission_function_url" {
 }
 
 resource "aws_lambda_permission" "allow_public_function_url" {
-  statement_id           = "AllowPublicFunctionUrlInvoke"
+  statement_id           = "AllowPublicFunctionUrlInvokeTofuTest"
   action                 = "lambda:InvokeFunctionUrl"
   function_name          = aws_lambda_function.message_submission_lambda.function_name
   principal              = "*"
@@ -132,7 +137,7 @@ resource "aws_lambda_permission" "allow_public_function_url" {
 }
 
 resource "aws_cloudwatch_event_rule" "route_to_moderation_lambda" {
-  name           = "route-to-moderation-lambda"
+  name           = local.event_rule_name
   event_bus_name = aws_cloudwatch_event_bus.message_moderation_bus.name
 
   event_pattern = jsonencode({
@@ -148,7 +153,7 @@ resource "aws_cloudwatch_event_target" "moderation_lambda_target" {
 }
 
 resource "aws_lambda_permission" "allow_eventbridge_invoke" {
-  statement_id  = "AllowEventBridgeInvoke"
+  statement_id  = "AllowEventBridgeInvokeTofuTest"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.message_moderation_lambda.function_name
   principal     = "events.amazonaws.com"
