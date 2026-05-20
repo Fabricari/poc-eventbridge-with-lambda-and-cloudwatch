@@ -12,17 +12,17 @@ provider "aws" {
 }
 
 locals {
-  event_bus_name    = "message-moderation-bus-tofu-test"
+  event_bus_name    = "message-moderation-bus"
   event_source      = "message-submission-service"
   event_detail_type = "MessageSubmitted"
 
-  submission_lambda_name = "MessageSubmissionLambdaTofuTest"
-  moderation_lambda_name = "MessageModerationLambdaTofuTest"
+  submission_lambda_name = "MessageSubmissionLambda"
+  moderation_lambda_name = "MessageModerationLambda"
 
-  submission_role_name = "MessageSubmissionLambdaRoleTofuTest"
-  moderation_role_name = "MessageModerationLambdaRoleTofuTest"
+  submission_role_name = "MessageSubmissionLambdaRole"
+  moderation_role_name = "MessageModerationLambdaRole"
 
-  event_rule_name = "route-to-moderation-lambda-tofu-test"
+  event_rule_name = "route-to-moderation-lambda"
 
   submission_zip_path = "${path.module}/../packages/MessageSubmissionLambda/MessageSubmissionLambda.zip"
   moderation_zip_path = "${path.module}/../packages/MessageModerationLambda/MessageModerationLambda.zip"
@@ -73,7 +73,7 @@ resource "aws_iam_role_policy_attachment" "moderation_basic_execution" {
 }
 
 resource "aws_iam_role_policy" "allow_eventbridge_put_events_policy" {
-  name = "AllowEventBridgePutEventsPolicyTofuTest"
+  name = "AllowEventBridgePutEventsPolicy"
   role = aws_iam_role.message_submission_lambda_role.id
 
   policy = jsonencode({
@@ -99,12 +99,12 @@ resource "aws_lambda_function" "message_submission_lambda" {
   source_code_hash = filebase64sha256(local.submission_zip_path)
 
   environment {
-  variables = {
-    EVENT_BUS_NAME    = aws_cloudwatch_event_bus.message_moderation_bus.arn
-    EVENT_SOURCE      = local.event_source
-    EVENT_DETAIL_TYPE = local.event_detail_type
+    variables = {
+      EVENT_BUS_NAME    = aws_cloudwatch_event_bus.message_moderation_bus.arn
+      EVENT_SOURCE      = local.event_source
+      EVENT_DETAIL_TYPE = local.event_detail_type
+    }
   }
-}
 
   depends_on = [
     aws_iam_role_policy_attachment.submission_basic_execution,
@@ -135,15 +135,15 @@ resource "aws_lambda_function_url" "message_submission_function_url" {
 }
 
 resource "aws_lambda_permission" "allow_public_function_url" {
-  statement_id        = "AllowPublicFunctionUrlInvokeTofuTest"
-  action              = "lambda:InvokeFunctionUrl"
-  function_name       = aws_lambda_function.message_submission_lambda.function_name
-  principal           = "*"
+  statement_id           = "AllowPublicFunctionUrlInvoke"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.message_submission_lambda.function_name
+  principal              = "*"
   function_url_auth_type = "NONE"
 }
 
 resource "aws_lambda_permission" "allow_public_invoke_function" {
-  statement_id  = "AllowPublicInvokeFunctionTofuTest"
+  statement_id  = "AllowPublicInvokeFunction"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.message_submission_lambda.function_name
   principal     = "*"
@@ -166,7 +166,7 @@ resource "aws_cloudwatch_event_target" "moderation_lambda_target" {
 }
 
 resource "aws_lambda_permission" "allow_eventbridge_invoke" {
-  statement_id  = "AllowEventBridgeInvokeTofuTest"
+  statement_id  = "AllowEventBridgeInvoke"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.message_moderation_lambda.function_name
   principal     = "events.amazonaws.com"
