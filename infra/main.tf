@@ -92,16 +92,19 @@ resource "aws_lambda_function" "message_submission_lambda" {
   runtime       = "dotnet8"
   handler       = "MessageSubmissionLambda::MessageSubmissionLambda.MessageSubmissionFunction::FunctionHandler"
 
+  timeout     = 15
+  memory_size = 256
+
   filename         = local.submission_zip_path
   source_code_hash = filebase64sha256(local.submission_zip_path)
 
   environment {
-    variables = {
-      EVENT_BUS_NAME    = local.event_bus_name
-      EVENT_SOURCE      = local.event_source
-      EVENT_DETAIL_TYPE = local.event_detail_type
-    }
+  variables = {
+    EVENT_BUS_NAME    = aws_cloudwatch_event_bus.message_moderation_bus.arn
+    EVENT_SOURCE      = local.event_source
+    EVENT_DETAIL_TYPE = local.event_detail_type
   }
+}
 
   depends_on = [
     aws_iam_role_policy_attachment.submission_basic_execution,
@@ -114,6 +117,9 @@ resource "aws_lambda_function" "message_moderation_lambda" {
   role          = aws_iam_role.message_moderation_lambda_role.arn
   runtime       = "dotnet8"
   handler       = "MessageModerationLambda::MessageModerationLambda.MessageModerationFunction::FunctionHandler"
+
+  timeout     = 15
+  memory_size = 256
 
   filename         = local.moderation_zip_path
   source_code_hash = filebase64sha256(local.moderation_zip_path)
@@ -129,11 +135,18 @@ resource "aws_lambda_function_url" "message_submission_function_url" {
 }
 
 resource "aws_lambda_permission" "allow_public_function_url" {
-  statement_id           = "AllowPublicFunctionUrlInvokeTofuTest"
-  action                 = "lambda:InvokeFunctionUrl"
-  function_name          = aws_lambda_function.message_submission_lambda.function_name
-  principal              = "*"
+  statement_id        = "AllowPublicFunctionUrlInvokeTofuTest"
+  action              = "lambda:InvokeFunctionUrl"
+  function_name       = aws_lambda_function.message_submission_lambda.function_name
+  principal           = "*"
   function_url_auth_type = "NONE"
+}
+
+resource "aws_lambda_permission" "allow_public_invoke_function" {
+  statement_id  = "AllowPublicInvokeFunctionTofuTest"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.message_submission_lambda.function_name
+  principal     = "*"
 }
 
 resource "aws_cloudwatch_event_rule" "route_to_moderation_lambda" {
