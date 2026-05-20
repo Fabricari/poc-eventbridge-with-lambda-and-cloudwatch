@@ -7,7 +7,7 @@ echo "Packaging MessageModerationLambda..."
 dotnet lambda package \
   --project-location "$REPO_ROOT/src/functions/MessageModerationLambda" \
   --configuration Release \
-  --framework net10.0 \
+  --framework net8.0 \
   --output-package "$REPO_ROOT/packages/MessageModerationLambda/MessageModerationLambda.zip"
 
 echo "Done. Output: packages/MessageModerationLambda/MessageModerationLambda.zip"
